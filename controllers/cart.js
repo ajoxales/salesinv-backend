@@ -1,28 +1,28 @@
 const CartModel = require("../models/Cart");
+const ProductModel = require("../models/Product");
 
 const addToCart = (req, res) => {
   const { username, productName, price } = req.body;
   const quantity = 1;
   const totalAmount = parseFloat(quantity) * parseFloat(price);
 
-  CartModel.findOne({ username, productName })
-    .then((existingCartItem) => {
-      if (existingCartItem) {
-        existingCartItem.quantity += quantity;
-        existingCartItem.totalAmount += totalAmount;
-
-        return existingCartItem.save();
-      } else {
-        const newItem = new CartModel({
-          username,
-          productName,
-          quantity,
-          price: parseFloat(price),
-          totalAmount,
-        });
-
-        return newItem.save();
-      }
+  ProductModel.findOneAndUpdate(
+    { productName },
+    { $inc: { quantity: -quantity } }
+  )
+    .then(() => {
+      return CartModel.findOneAndUpdate(
+        { username, productName },
+        {
+          $inc: { quantity: quantity, totalAmount: totalAmount },
+          $setOnInsert: {
+            username,
+            productName,
+            price: parseFloat(price),
+          },
+        },
+        { upsert: true }
+      );
     })
     .then(() => {
       res.status(201).json({ message: "Added to cart successfully" });
@@ -50,8 +50,45 @@ const getCart = (req, res) => {
 };
 
 const deleteCart = (req, res) => {
-  CartModel.findByIdAndDelete(req.body.id).then(() => {
-    CartModel.find().then((data) => res.send(data));
+  const itemId = req.body.id;
+  CartModel.findByIdAndDelete(itemId)
+    .then(() => {
+      ProductModel.findOneAndUpdate(
+        { productName: req.body.productName },
+        { $inc: { quantity: req.body.quantity } }
+      ).then(() => {
+        CartModel.find({ username: req.body.username }).then((cartItems) => {
+          res.json(cartItems);
+        });
+      });
+    })
+    .catch((error) => {
+      console.error("Error deleting item:", error);
+      res.status(500).json({ error: "Internal server error" });
+    });
+};
+
+const deleteCartItems = (req, res) => {
+  const { username } = req.params;
+
+  CartModel.deleteMany({ username })
+    .then(() => {
+      res.status(200).json({ message: "Cart items deleted successfully" });
+    })
+    .catch((error) => {
+      console.error("Error deleting cart items:", error);
+      res.status(500).json({ error: "Internal server error" });
+    });
+};
+
+const updateProduct = (productName, quantityChange) => {
+  const filter = { productName: productName };
+  const updateProdValues = {
+    $inc: { quantity: quantityChange },
+  };
+
+  ProductModel.findOneAndUpdate(filter, updateProdValues).catch((error) => {
+    console.error("Error updating product quantity:", error);
   });
 };
 
@@ -59,4 +96,6 @@ module.exports = {
   addToCart,
   getCart,
   deleteCart,
+  updateProduct,
+  deleteCartItems,
 };

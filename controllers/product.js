@@ -30,17 +30,15 @@ const getProduct = (req, res) => {
   });
 };
 
-const updateProduct = (req, res) => {
-  const filter = { _id: req.body._id };
+const updateProduct = (productName, quantityChange) => {
+  const filter = { productName: productName };
   const updateProdValues = {
-    productName: req.body.productName,
-    quantity: req.body.quantity,
-    price: parseFloat(req.body.price),
+    $inc: { quantity: quantityChange },
   };
 
-  ProductModel.findOneAndUpdate(filter, updateProdValues).then(() =>
-    res.sendStatus(201)
-  );
+  ProductModel.findOneAndUpdate(filter, updateProdValues).catch((error) => {
+    console.error("Error updating product quantity:", error);
+  });
 };
 
 const deleteProduct = (req, res) => {

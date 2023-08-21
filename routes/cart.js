@@ -18,4 +18,8 @@ router.delete("/user/cart", (req, res) => {
   cartController.deleteCart(req, res);
 });
 
+router.delete("/user/cart/:id", (req, res) => {
+  cartController.deleteCartItems(req, res);
+});
+
 module.exports = router;
