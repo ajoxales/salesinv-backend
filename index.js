@@ -6,6 +6,9 @@ require("dotenv").config();
 const MONGO_URI = process.env.MONGODB_URI;
 
 const userRoutes = require("./routes/user");
+const productRoutes = require("./routes/product");
+const cartRoutes = require("./routes/cart");
+const transactionRoutes = require("./routes/transaction");
 
 const app = express();
 
@@ -35,6 +38,9 @@ app.get("/", (req, res) => {
 });
 
 app.use(userRoutes);
+app.use(productRoutes);
+app.use(cartRoutes);
+app.use(transactionRoutes);
 
 const PORT = 4000;
 app.listen(PORT, () => console.log(`API running at http://localhost:${PORT}`));
